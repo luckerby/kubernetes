@@ -117,7 +117,7 @@ func (w *Watcher) traversePluginDir(dir string) error {
 	}
 	// traverse existing children in the dir
 	return w.fs.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		klog.V(5).InfoS("luckerby: traversing children...")
+		klog.V(5).InfoS("luckerby: traversing children", info.Name())
 		if err != nil {
 			if path == dir {
 				return fmt.Errorf("error accessing path: %s error: %v", path, err)
@@ -132,6 +132,7 @@ func (w *Watcher) traversePluginDir(dir string) error {
 			return nil
 		}
 
+		klog.V(5).InfoS("luckerby: mode follows", info.Mode())
 		switch mode := info.Mode(); {
 		case mode.IsDir():
 			klog.V(5).InfoS("luckerby: this is a dir")
