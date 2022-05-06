@@ -143,8 +143,8 @@ func IsUnixDomainSocket(filePath string) (bool, error) {
 	// does NOT work in 1809 if the socket file is created within a bind mounted directory by a container
 	// and the FSCTL is issued in the host by the kubelet.
 
-	klog.InfoS("A generic message")
-	klog.V(4).InfoS("A generic message")
+	klog.InfoS("luckerby: IsUnixDomainSocket starts")
+	klog.V(4).InfoS("luckerby: IsUnixDomainSocket starts")
 	noAttempts := 0
 	for {
 		c, err := net.Dial("unix", filePath)
