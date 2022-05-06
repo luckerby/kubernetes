@@ -144,6 +144,7 @@ func IsUnixDomainSocket(filePath string) (bool, error) {
 	// and the FSCTL is issued in the host by the kubelet.
 
 	klog.InfoS("A generic message")
+	klog.V(4).InfoS("A generic message")
 	noAttempts := 0
 	for {
 		c, err := net.Dial("unix", filePath)
