@@ -117,6 +117,7 @@ func (w *Watcher) traversePluginDir(dir string) error {
 	}
 	// traverse existing children in the dir
 	return w.fs.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		klog.V(5).InfoS("luckerby: traversing children...")
 		if err != nil {
 			if path == dir {
 				return fmt.Errorf("error accessing path: %s error: %v", path, err)
@@ -133,10 +134,12 @@ func (w *Watcher) traversePluginDir(dir string) error {
 
 		switch mode := info.Mode(); {
 		case mode.IsDir():
+			klog.V(5).InfoS("luckerby: this is a dir")
 			if err := w.fsWatcher.Add(path); err != nil {
 				return fmt.Errorf("failed to watch %s, err: %v", path, err)
 			}
 		case mode&os.ModeSocket != 0:
+			klog.V(5).InfoS("luckerby: this should normally be a Linux path")
 			event := fsnotify.Event{
 				Name: path,
 				Op:   fsnotify.Create,
@@ -146,6 +149,7 @@ func (w *Watcher) traversePluginDir(dir string) error {
 				klog.ErrorS(err, "Error when handling create", "event", event)
 			}
 		default:
+			klog.V(5).InfoS("a message added to test logging")
 			klog.V(5).InfoS("Ignoring file", "path", path, "mode", mode)
 		}
 
