@@ -35,6 +35,13 @@ import (
 const (
 	tcpProtocol   = "tcp"
 	npipeProtocol = "npipe"
+	// Amount of time to wait between attempting to use a Unix Domain socket.
+	// As detailed in https://github.com/kubernetes/kubernetes/issues/104584
+	// the first attempt will most likely fail, hence the need to retry
+	delayBetweenSuccessiveSocketDials = 1 * time.Second
+	// Maximum number of attempts to use a Unix Domain socket, after which we
+	// error out
+	numberOfAttemptsToSocketDial = 3
 )
 
 // CreateListener creates a listener on the specified endpoint.
@@ -137,14 +144,22 @@ func IsUnixDomainSocket(filePath string) (bool, error) {
 	// does NOT work in 1809 if the socket file is created within a bind mounted directory by a container
 	// and the FSCTL is issued in the host by the kubelet.
 
-	c, err := net.Dial("unix", filePath)
-	if err == nil {
-		c.Close()
-		return true, nil
-	} else {
-		klog.InfoS("Trying to dial the socket at", filePath, "failed", err)
+	noAttempts := 0
+	for {
+		c, err := net.Dial("unix", filePath)
+		if err == nil {
+			c.Close()
+			return true, nil
+		} else {
+			noAttempts++
+			if noAttempts >= numberOfAttemptsToSocketDial {
+				return false, nil
+			} else {
+				klog.InfoS("Trying to dial the socket at", filePath, "failed", err)
+				time.Sleep(delayBetweenSuccessiveSocketDials)
+			}
+		}
 	}
-	return false, nil
 }
 
 // NormalizePath converts FS paths returned by certain go frameworks (like fsnotify)
