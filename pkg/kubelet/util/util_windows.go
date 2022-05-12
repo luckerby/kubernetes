@@ -161,7 +161,7 @@ func IsUnixDomainSocket(filePath string) (bool, error) {
 				return false, nil
 			} else {
 				klog.InfoS("Failed the current attempt to dial the socket, so pausing before retry",
-					"filePath", filePath, "delayBetweenSuccessiveSocketDials",
+					"filePath", filePath, "err", err, "delayBetweenSuccessiveSocketDials",
 					delayBetweenSuccessiveSocketDials)
 				time.Sleep(delayBetweenSuccessiveSocketDials)
 			}
