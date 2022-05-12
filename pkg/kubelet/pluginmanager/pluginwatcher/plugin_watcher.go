@@ -150,7 +150,6 @@ func (w *Watcher) traversePluginDir(dir string) error {
 				klog.ErrorS(err, "Error when handling create", "event", event)
 			}
 		default:
-			klog.V(5).InfoS("a message added to test logging")
 			klog.V(5).InfoS("Ignoring file", "path", path, "mode", mode)
 		}
 

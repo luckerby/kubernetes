@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 /*
@@ -143,20 +144,25 @@ func IsUnixDomainSocket(filePath string) (bool, error) {
 	// does NOT work in 1809 if the socket file is created within a bind mounted directory by a container
 	// and the FSCTL is issued in the host by the kubelet.
 
-	klog.InfoS("luckerby: IsUnixDomainSocket starts")
-	klog.V(4).InfoS("luckerby: IsUnixDomainSocket starts")
+	klog.InfoS("Function IsUnixDomainSocket starts")
 	noAttempts := 0
 	for {
+		klog.InfoS("Dialing the socket", "filePath", filePath)
 		c, err := net.Dial("unix", filePath)
 		if err == nil {
 			c.Close()
+			klog.InfoS("Socket dialed successfully", "filePath", filePath)
 			return true, nil
 		} else {
 			noAttempts++
 			if noAttempts >= numberOfAttemptsToSocketDial {
+				klog.InfoS("Failed all attempts to dial the socket so marking it as a non-Unix Domain socket",
+					"filePath", filePath)
 				return false, nil
 			} else {
-				klog.InfoS("Trying to dial the socket at", filePath, "failed", err)
+				klog.InfoS("Failed the current attempt to dial the socket, so pausing before retry",
+					"filePath", filePath, "delayBetweenSuccessiveSocketDials",
+					delayBetweenSuccessiveSocketDials)
 				time.Sleep(delayBetweenSuccessiveSocketDials)
 			}
 		}
