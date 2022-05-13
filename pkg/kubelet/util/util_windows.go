@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 /*
@@ -21,6 +22,8 @@ package util
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog/v2"
 	"net"
 	"net/url"
 	"strings"
@@ -33,6 +36,13 @@ import (
 const (
 	tcpProtocol   = "tcp"
 	npipeProtocol = "npipe"
+	// Amount of time to wait between attempting to use a Unix Domain socket.
+	// As detailed in https://github.com/kubernetes/kubernetes/issues/104584
+	// the first attempt will most likely fail, hence the need to retry
+	delayBetweenSuccessiveSocketDials = 1 * time.Second
+	// Maximum number of attempts to use a Unix Domain socket, after which we
+	// error out
+	numberOfAttemptsToSocketDial = 3
 )
 
 // CreateListener creates a listener on the specified endpoint.
@@ -135,12 +145,33 @@ func IsUnixDomainSocket(filePath string) (bool, error) {
 	// does NOT work in 1809 if the socket file is created within a bind mounted directory by a container
 	// and the FSCTL is issued in the host by the kubelet.
 
-	c, err := net.Dial("unix", filePath)
-	if err == nil {
-		c.Close()
-		return true, nil
+	klog.V(6).InfoS("Function IsUnixDomainSocket starts")
+	// As detailed in https://github.com/kubernetes/kubernetes/issues/104584 we cannot rely
+	// on the Unix Domain socket working on the very first try, hence the need to dial multiple
+	// times
+	err := wait.PollImmediate(delayBetweenSuccessiveSocketDials,
+		numberOfAttemptsToSocketDial*delayBetweenSuccessiveSocketDials,
+		func() (bool, error) {
+			klog.V(6).InfoS("Dialing the socket", "filePath", filePath)
+			c, err := net.Dial("unix", filePath)
+			if err == nil {
+				c.Close()
+				klog.V(6).InfoS("Socket dialed successfully", "filePath", filePath)
+				return true, nil
+			}
+			klog.V(6).InfoS("Failed the current attempt to dial the socket, so pausing before retry",
+				"filePath", filePath, "err", err, "delayBetweenSuccessiveSocketDials",
+				delayBetweenSuccessiveSocketDials)
+			return false, nil
+
+		})
+
+	if err != nil {
+		klog.V(6).InfoS("Failed all attempts to dial the socket so marking it as a non-Unix Domain socket",
+			"filePath", filePath)
+		return false, err
 	}
-	return false, nil
+	return true, nil
 }
 
 // NormalizePath converts FS paths returned by certain go frameworks (like fsnotify)
