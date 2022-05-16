@@ -166,10 +166,12 @@ func IsUnixDomainSocket(filePath string) (bool, error) {
 
 		})
 
+	// PollImmediate will return "timed out waiting for the condition" if the function it
+	// invokes never returns true
 	if err != nil {
 		klog.V(6).InfoS("Failed all attempts to dial the socket so marking it as a non-Unix Domain socket",
 			"filePath", filePath)
-		return false, err
+		return false, nil
 	}
 	return true, nil
 }
