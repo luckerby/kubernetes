@@ -36,13 +36,12 @@ import (
 const (
 	tcpProtocol   = "tcp"
 	npipeProtocol = "npipe"
-	// Amount of time to wait between attempting to use a Unix Domain socket.
+	// Amount of time to wait between attempting to use a Unix domain socket.
 	// As detailed in https://github.com/kubernetes/kubernetes/issues/104584
 	// the first attempt will most likely fail, hence the need to retry
 	delayBetweenSuccessiveSocketDials = 1 * time.Second
-	// Maximum number of attempts to use a Unix Domain socket, after which we
-	// error out
-	numberOfAttemptsToSocketDial = 3
+	// Overall timeout value to dial a Unix domain socket, including retries
+	overallTimeoutToDialSocket = 4 * time.Second
 )
 
 // CreateListener creates a listener on the specified endpoint.
@@ -149,8 +148,7 @@ func IsUnixDomainSocket(filePath string) (bool, error) {
 	// As detailed in https://github.com/kubernetes/kubernetes/issues/104584 we cannot rely
 	// on the Unix Domain socket working on the very first try, hence the need to dial multiple
 	// times
-	err := wait.PollImmediate(delayBetweenSuccessiveSocketDials,
-		numberOfAttemptsToSocketDial*delayBetweenSuccessiveSocketDials,
+	err := wait.PollImmediate(delayBetweenSuccessiveSocketDials, overallTimeoutToDialSocket,
 		func() (bool, error) {
 			klog.V(6).InfoS("Dialing the socket", "filePath", filePath)
 			c, err := net.Dial("unix", filePath)
