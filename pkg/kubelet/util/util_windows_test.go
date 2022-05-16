@@ -256,6 +256,9 @@ func testPendingUnixDomainSocket(t *testing.T, label string) {
 		wg.Done()
 	}()
 
+	// Wait a sufficient amount of time to make sure the retry logic kicks in
+	time.Sleep(delayBetweenSuccessiveSocketDials)
+
 	// Replace the temporary file with an actual Unix domain socket file
 	os.Remove(testFile)
 	ta, err := net.ResolveUnixAddr("unix", testFile)
